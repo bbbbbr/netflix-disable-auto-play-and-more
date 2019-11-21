@@ -11,14 +11,6 @@
 (function() {
     'use strict';
 
-//
-// dom-utils.js
-//
-//
-// Misc. tools for interacting with the DOM
-
-
-
     //
     // Triggers an event handler (such as onClick) for an element
     //
@@ -70,56 +62,50 @@
     }
 
 
+    //
+    // Try to click the "Skip Intro" button.
+    // If found indicate success (assume click event worked without testing)
+    //
+    function tryClickSkipIntro() {
+
+        var elSkipIntro = document.querySelector('[aria-label="Skip Intro"]');
+
+        if (elSkipIntro != null) {
+            console.log("Sending Click");
+            eventFire( elSkipIntro,'click' );
+
+            return (true); // Button Clicked successfully
+        }
+
+        return (false); // Signal failure to send
+    }
+
+
 
     //
-    // When first connecting to Serpentine and the game is loading up, this hook will wait for
-    // the board settings to appear in the UI (#words element) as an indicator that everything
-    // is ready to go. It then tries to initialize the room/board/gameplay/etc
+    // This hook waits for the "Skip Intro" button (a subset of video controls) to
+    // appear in the UI (#aria-label="Skip Intro"), then tries to click it.
     //
-
-    // class = skip-credits skip-credits-hidden
-    // PlayerControlsNeo__layout PlayerControlsNeo__layout--inactive PlayerControlsNeo__layout--dimmed
-    // AkiraPlayer
-    // --> aria-label="Skip Intro"
     function installSkipIntroHook()
     {
         console.log("Start");
+        // Try to click the button immediately if possible
+        if (! tryClickSkipIntro()) {
 
-
-                var elSkipIntro = document.querySelector('[aria-label="Skip Intro"]');
-
-                console.log( document.querySelector('[id=appMountPoint]') );
-
-// TODO: try to disconnect right away if possible
-
-        // Subtree monitoring enabled in order to catch changes to the text sub node
-        registerMutationObserver('[id=appMountPoint]', true,
-            function(mutations)
-            {
-                console.log("Mutation...");
-
-                var elSkipIntro = document.querySelector('[aria-label="Skip Intro"]');
-
-                console.log(elSkipIntro);
-                if (elSkipIntro != null)
+            // If the element wasn't present then set up a mutation observer
+            // to wait for the "Skip Intro" button (subset of video controls)
+            // (Subtree monitoring enabled)
+            registerMutationObserver('[id=appMountPoint]', true,
+                function(mutations)
                 {
-                    eventFire( elSkipIntro,'click' );
-
-                    // return (true); // Word sent successfully
-                    this.disconnect();
+                    console.log("Mutation...");
+                    if (tryClickSkipIntro()) {
+                        // Disconnect once the intro skip event has been sent
+                        this.disconnect();
+                    }
                 }
-                else
-                {
-                    // return (false); // Signal failure to send
-                }
-
-                // // Try to initialize the room
-                //  if (initRoom())
-                //  {
-                // If the init succeeded then stop monitoring the words element for mutations
-                // this.disconnect();
-                //   }
-            });
+            );
+        }
     }
 
 
