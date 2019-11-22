@@ -11,32 +11,38 @@
 // ..include     https://www.netflix.com/match *
 // misses scenario where user navigates from home page (no reload, just url changes)
 
-//var re = new RegExp("^([a-z0-9]{5,})$");
-//if (re.test(term)) {
-//    console.log("Valid");
-//} else {
-//    console.log("Invalid");
-//}
 
 (function() {
     'use strict';
-    // URL empty by defualt so first test will trigger need to register
+    // URL empty by defualt so first test will evaluate to true (changed)
     //  = document.location.toString();
     var url_current = "";
+    var url_match   = "netflix\\.com\\/watch"
+    var hook_active = false;
+
+    var selector_skip_intro_button = '[aria-label="Skip Intro"]';
+    var selector_page_monitor = '[id=appMountPoint]';
 
 
-    function registerNavigationChangeListener(callbackFunction) {
+    //
+    // Installs a listener for navigation changes that occur without a page reload
+    //
+    function registerNavigationChangeListener(callbackFunction, matchCriteria) {
         document.querySelector('html').addEventListener('DOMNodeInserted', function(ev){
-            var url_new = document.location.toString();
 
-            // TODO: make the url string match a parameter
+            var url_new = document.location.toString();
+            var urlMatches = new RegExp(matchCriteria, "i").test(url_new);
+            // console.log("newurl?:" + (url_current != url_new) + ", hook:" +  hook_active + ", Matches: " + urlMatches + " - " + url_new);
+
             // Trigger callback if the url changed and it matches the criteria
-            if ((url_current != url_new) && (url_new.match(/netflix\.com\/watch/))) {
+            if ((url_current != url_new) && (urlMatches) && (hook_active == false)) {
                 callbackFunction();
             }
+
             url_current = url_new;
         });
     }
+
 
     //
     // Triggers an event handler (such as onClick) for an element
@@ -85,7 +91,11 @@
                     characterDataOldValue: true
                 });
             }
+
+            return true; // At least one hook succeeded
         }
+
+        return false; // No nodes found to hook
     }
 
 
@@ -95,7 +105,7 @@
     //
     function tryClickSkipIntro() {
 
-        var elSkipIntro = document.querySelector('[aria-label="Skip Intro"]');
+        var elSkipIntro = document.querySelector(selector_skip_intro_button);
 
         if (elSkipIntro != null) {
             console.log("Sending Click");
@@ -122,22 +132,25 @@
             // If the element wasn't present then set up a mutation observer
             // to wait for the "Skip Intro" button (subset of video controls)
             // (Subtree monitoring enabled)
-            registerMutationObserver('[id=appMountPoint]', true,
-                function(mutations)
-                {
-                    // console.log("Mutation...");
-                    if (tryClickSkipIntro()) {
-                        // Disconnect once the intro skip event has been sent
-                        this.disconnect();
-                        // Don't disconnectuntil a way to reload on navigation changes without page reload (url changes though)
+
+            hook_active = registerMutationObserver(selector_page_monitor, true,
+                    function(mutations)
+                    {
+                        // console.log("Mutation...");
+                        if (tryClickSkipIntro()) {
+                            // Disconnect once the intro skip event has been sent
+                            this.disconnect();
+                            hook_active = false;
+                        }
                     }
-                }
-            );
+                );
         }
     }
 
 
-    registerNavigationChangeListener(installSkipIntroHook);
+    // Hook page navigation and try to detect when video watching starts,
+    // then monitor for the skip intro button's appearance
+    registerNavigationChangeListener(installSkipIntroHook, url_match);
 
 
 })();
