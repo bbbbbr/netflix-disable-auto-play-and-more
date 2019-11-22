@@ -4,12 +4,39 @@
 // @version      0.1
 // @description  Netflix Auto-skip intro
 // @author       Author
-// @include     https://www.netflix.com/watch/*
+// @include     https://www.netflix.com/*
 // @grant        none
 // ==/UserScript==
 
+// ..include     https://www.netflix.com/match *
+// misses scenario where user navigates from home page (no reload, just url changes)
+
+//var re = new RegExp("^([a-z0-9]{5,})$");
+//if (re.test(term)) {
+//    console.log("Valid");
+//} else {
+//    console.log("Invalid");
+//}
+
 (function() {
     'use strict';
+    // URL empty by defualt so first test will trigger need to register
+    //  = document.location.toString();
+    var url_current = "";
+
+
+    function registerNavigationChangeListener(callbackFunction) {
+        document.querySelector('html').addEventListener('DOMNodeInserted', function(ev){
+            var url_new = document.location.toString();
+
+            // TODO: make the url string match a parameter
+            // Trigger callback if the url changed and it matches the criteria
+            if ((url_current != url_new) && (url_new.match(/netflix\.com\/watch/))) {
+                callbackFunction();
+            }
+            url_current = url_new;
+        });
+    }
 
     //
     // Triggers an event handler (such as onClick) for an element
@@ -98,10 +125,11 @@
             registerMutationObserver('[id=appMountPoint]', true,
                 function(mutations)
                 {
-                    console.log("Mutation...");
+                    // console.log("Mutation...");
                     if (tryClickSkipIntro()) {
                         // Disconnect once the intro skip event has been sent
                         this.disconnect();
+                        // Don't disconnectuntil a way to reload on navigation changes without page reload (url changes though)
                     }
                 }
             );
@@ -109,5 +137,7 @@
     }
 
 
-    installSkipIntroHook();
+    registerNavigationChangeListener(installSkipIntroHook);
+
+
 })();
