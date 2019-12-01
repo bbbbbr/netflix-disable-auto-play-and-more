@@ -16,30 +16,31 @@
     'use strict';
     // URL empty by defualt so first test will evaluate to true (changed)
     //  = document.location.toString();
-    var url_current = "";
-    var url_match   = "netflix\\.com\\/watch"
-    var hook_active = false;
+    var url_match = "netflix\\.com\\/watch";
+    var hook_info = { intro:{state: false, url_current: ""},
+                      recap:{state: false, url_current: ""}};
 
     var selector_skip_intro_button = '[aria-label="Skip Intro"]';
+    var selector_skip_recap_button = '[aria-label="Skip Recap"]';
     var selector_page_monitor = '[id=appMountPoint]';
 
 
     //
     // Installs a listener for navigation changes that occur without a page reload
     //
-    function registerNavigationChangeListener(callbackFunction, matchCriteria) {
+    function registerNavigationChangeListener(callbackFunction, matchCriteria, buttoncriteria, hookname) {
         document.querySelector('html').addEventListener('DOMNodeInserted', function(ev){
 
             var url_new = document.location.toString();
             var urlMatches = new RegExp(matchCriteria, "i").test(url_new);
-            // console.log("newurl?:" + (url_current != url_new) + ", hook:" +  hook_active + ", Matches: " + urlMatches + " - " + url_new);
+            // console.log("newurl?:" + (hook_info[hookname].url_current != url_new) + ", hook active?:" + hookname + " = " + hook_info[hookname].state + ", URLMatches: " + urlMatches + " - " + url_new);
 
             // Trigger callback if the url changed and it matches the criteria
-            if ((url_current != url_new) && (urlMatches) && (hook_active == false)) {
-                callbackFunction();
+            if ((hook_info[hookname].url_current != url_new) && (urlMatches) && (hook_info[hookname].state == false)) {
+                callbackFunction(buttoncriteria, hookname);
             }
 
-            url_current = url_new;
+            hook_info[hookname].url_current = url_new;
         });
     }
 
@@ -100,16 +101,16 @@
 
 
     //
-    // Try to click the "Skip Intro" button.
+    // Try to click a button.
     // If found indicate success (assume click event worked without testing)
     //
-    function tryClickSkipIntro() {
+    function tryClick(queryselector) {
 
-        var elSkipIntro = document.querySelector(selector_skip_intro_button);
+        var elButton = document.querySelector(queryselector);
 
-        if (elSkipIntro != null) {
-            console.log("Sending Click");
-            eventFire( elSkipIntro,'click' );
+        if (elButton != null) {
+            // console.log("Sending Click");
+            eventFire( elButton,'click' );
 
             return (true); // Button Clicked successfully
         }
@@ -123,24 +124,25 @@
     // This hook waits for the "Skip Intro" button (a subset of video controls) to
     // appear in the UI (#aria-label="Skip Intro"), then tries to click it.
     //
-    function installSkipIntroHook()
+    function installButtonClickHook(queryselector, hookname)
     {
-        console.log("Start");
+        // console.log("Start:" + hookname);
         // Try to click the button immediately if possible
-        if (! tryClickSkipIntro()) {
+        if (! tryClick(queryselector)) {
 
             // If the element wasn't present then set up a mutation observer
             // to wait for the "Skip Intro" button (subset of video controls)
             // (Subtree monitoring enabled)
 
-            hook_active = registerMutationObserver(selector_page_monitor, true,
+            hook_info[hookname].state = registerMutationObserver(selector_page_monitor, true,
                     function(mutations)
                     {
                         // console.log("Mutation...");
-                        if (tryClickSkipIntro()) {
+                        if (tryClick(queryselector)) {
                             // Disconnect once the intro skip event has been sent
                             this.disconnect();
-                            hook_active = false;
+                            hook_info[hookname].state = false;
+                            // console.log("Disconnecting:" + hookname);
                         }
                     }
                 );
@@ -150,7 +152,7 @@
 
     // Hook page navigation and try to detect when video watching starts,
     // then monitor for the skip intro button's appearance
-    registerNavigationChangeListener(installSkipIntroHook, url_match);
-
+    registerNavigationChangeListener(installButtonClickHook, url_match, selector_skip_intro_button, 'intro');
+    registerNavigationChangeListener(installButtonClickHook, url_match, selector_skip_recap_button, 'recap');
 
 })();
