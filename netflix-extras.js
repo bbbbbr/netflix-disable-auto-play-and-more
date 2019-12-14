@@ -17,13 +17,19 @@
     // URL empty by defualt so first test will evaluate to true (changed)
     //  = document.location.toString();
     var url_match = "netflix\\.com\\/watch";
-    var hook_info = { intro:{state: false, url_current: ""},
-                      recap:{state: false, url_current: ""}};
+    var hook_info = { intro:        {state: false, url_current: ""},
+                      recap:        {state: false, url_current: ""},
+                      resumecredits:{state: false, url_current: ""}};
 
     var selector_skip_intro_button = '[aria-label="Skip Intro"]';
     var selector_skip_recap_button = '[aria-label="Skip Recap"]';
     var selector_page_monitor = '[id=appMountPoint]';
 
+    // Try to suppress post-play "promoted" preview content
+    //   Wait for promo area / countdown button to appear
+    //   Then try to click the resume post-play button to bring the credits back
+    // var selector_postplay_promo_area  = 'div.OriginalsPostPlay-BackgroundTrailer-promo-container'; // Div with "promoted" content
+    var selector_postplay_resume_button = 'div.AkiraPlayer > div.can-resume.postplay';             // Div with click event to resume credits
 
     //
     // Installs a listener for navigation changes that occur without a page reload
@@ -109,7 +115,7 @@
         var elButton = document.querySelector(queryselector);
 
         if (elButton != null) {
-            // console.log("Sending Click");
+            // console.log("Sending Click for:" + queryselector);
             eventFire( elButton,'click' );
 
             return (true); // Button Clicked successfully
@@ -126,7 +132,7 @@
     //
     function installButtonClickHook(queryselector, hookname)
     {
-        // console.log("Start:" + hookname);
+        // console.log("Start:" + hookname : " for " + queryselector);
         // Try to click the button immediately if possible
         if (! tryClick(queryselector)) {
 
@@ -154,5 +160,5 @@
     // then monitor for the skip intro button's appearance
     registerNavigationChangeListener(installButtonClickHook, url_match, selector_skip_intro_button, 'intro');
     registerNavigationChangeListener(installButtonClickHook, url_match, selector_skip_recap_button, 'recap');
-
+    registerNavigationChangeListener(installButtonClickHook, url_match, selector_postplay_resume_button, 'resumecredits');
 })();
