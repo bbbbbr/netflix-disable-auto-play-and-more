@@ -17,10 +17,10 @@
     // URL empty by defualt so first test will evaluate to true (changed)
     //  = document.location.toString();
     var url_match = "netflix\\.com\\/watch";
-    var hook_info = { intro:        {state: false, url_current: ""},
-                      recap:        {state: false, url_current: ""},
-                      resumecredits:{state: false, url_current: ""},
-                      postcreditspromo:{state: false, url_current: ""}};
+    var hook_info = { intro:        {state: false, url_current: "", matchtext: ""},
+                      recap:        {state: false, url_current: "", matchtext: ""},
+                      resumecredits:{state: false, url_current: "", matchtext: ""},
+                      postcreditspromo:{state: false, url_current: "", matchtext: "Preview in 9"}};
 
     var selector_skip_intro_button = '[aria-label="Skip Intro"]';
     var selector_skip_recap_button = '[aria-label="Skip Recap"]';
@@ -34,8 +34,8 @@
     //   Then try to click the resume post-play button to bring the credits back
     // var selector_postplay_promo_area  = 'div.OriginalsPostPlay-BackgroundTrailer-promo-container'; // Div with "promoted" content
     var selector_postplay_resume_button = 'div.AkiraPlayer > div.can-resume.postplay';                // Div with click event to resume credits
-    // var selector_postplay_aftercredits_countdown = '.countdown-container';
-    var selector_postplay_aftercredits_countdown = '.season-renewal-actions';
+
+    var selector_postplay_aftercredits_countdown = '.countdown-container';
 
 
     function removeElement(el) {
@@ -121,24 +121,23 @@
     // Check if an element exists.
     // If found then remove all timers, optionally remove the element and indicate success
     //
-    function removeAllTimersIfElementExists(queryselector, doRemoveElement) {
+    function removeAllTimersIfElementExists(queryselector, matchtext) {
 
-        var el = document.querySelector(queryselector);
+        var el = document.querySelector(queryselector, matchtext);
 
         if (el != null) {
+            // console.log(el.innerHTML + " === " + matchtext + "? " + (el.innerHTML === matchtext));
+            // If requested, make sure text content of the element matches
+            if ((matchtext === '') || (el.innerHTML === matchtext)) {
 
-            // Remove all active timers
-            var id = window.setTimeout(function() {}, 0);
-            while (id--) {
-                window.clearTimeout(id); // will do nothing if no timeout with id is present
+                // Remove all active timers
+                var id = window.setTimeout(function() {}, 0);
+                while (id--) {
+                    window.clearTimeout(id); // will do nothing if no timeout with id is present
+                }
+
+                return (true); // Element found and timers removed
             }
-
-            // Remove element if requested
-            if (doRemoveElement) {
-                removeElement(el);
-            }
-
-            return (true); // Element found and timers removed
         }
 
         return (false); // Signal failure: element not found
@@ -202,21 +201,24 @@
     function installRemoveTimersHook(queryselector, hookname)
     {
         // console.log("Start:" + hookname + " for " + queryselector);
+        // Try to stop the timers the button immediately if possible
+        if (! removeAllTimersIfElementExists(queryselector, hook_info[hookname].matchtext)) {
 
-        // Wait for the element to show up, then try and remove all timers to
-        // stop the countdown and then disconnect. It's sloppy, but works.
-        // (Subtree monitoring enabled)
-        hook_info[hookname].state = registerMutationObserver(selector_page_monitor, true,
-            function(mutations)
-            {
-                // console.log("Mutations:" + hookname + " for " + queryselector);
-                if (removeAllTimersIfElementExists(queryselector, true)) {
-                    this.disconnect();
-                    hook_info[hookname].state = false;
-                    // console.log("Disconnecting:" + hookname);
+            // Wait for the element to show up, then try and remove all timers to
+            // stop the countdown and then disconnect. It's sloppy, but works.
+            // (Subtree monitoring enabled)
+            hook_info[hookname].state = registerMutationObserver(selector_page_monitor, true,
+                function(mutations)
+                {
+                    // console.log("Mutations:" + hookname + " for " + queryselector);
+                    if (removeAllTimersIfElementExists(queryselector, hook_info[hookname].matchtext)) {
+                        this.disconnect();
+                        hook_info[hookname].state = false;
+                        // console.log("Disconnecting:" + hookname);
+                    }
                 }
-            }
-        );
+            );
+        }
     }
 
 
