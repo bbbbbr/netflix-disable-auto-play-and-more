@@ -19,17 +19,28 @@
     var url_match = "netflix\\.com\\/watch";
     var hook_info = { intro:        {state: false, url_current: ""},
                       recap:        {state: false, url_current: ""},
-                      resumecredits:{state: false, url_current: ""}};
+                      resumecredits:{state: false, url_current: ""},
+                      postcreditspromo:{state: false, url_current: ""}};
 
     var selector_skip_intro_button = '[aria-label="Skip Intro"]';
     var selector_skip_recap_button = '[aria-label="Skip Recap"]';
     var selector_page_monitor = '[id=appMountPoint]';
 
+    // var postplay_aftercredits_backbutton = 'div.AkiraPlayer > div > a.BackToBrowse';             // Div with click event to exit post-play and return to browse
+    // During credits : .nfp-control-row or .top-left-controls > button.button-nfplayerBack  OR aria-label="Back to Browse" OR data-tooltip="Back to Browse" OR  data-uia="nfplayer-exit"
+
     // Try to suppress post-play "promoted" preview content
     //   Wait for promo area / countdown button to appear
     //   Then try to click the resume post-play button to bring the credits back
     // var selector_postplay_promo_area  = 'div.OriginalsPostPlay-BackgroundTrailer-promo-container'; // Div with "promoted" content
-    var selector_postplay_resume_button = 'div.AkiraPlayer > div.can-resume.postplay';             // Div with click event to resume credits
+    var selector_postplay_resume_button = 'div.AkiraPlayer > div.can-resume.postplay';                // Div with click event to resume credits
+    // var selector_postplay_aftercredits_countdown = '.countdown-container';
+    var selector_postplay_aftercredits_countdown = '.season-renewal-actions';
+
+
+    function removeElement(el) {
+        return el.parentNode.removeChild(el);
+    }
 
     //
     // Installs a listener for navigation changes that occur without a page reload
@@ -107,6 +118,34 @@
 
 
     //
+    // Check if an element exists.
+    // If found then remove all timers, optionally remove the element and indicate success
+    //
+    function removeAllTimersIfElementExists(queryselector, doRemoveElement) {
+
+        var el = document.querySelector(queryselector);
+
+        if (el != null) {
+
+            // Remove all active timers
+            var id = window.setTimeout(function() {}, 0);
+            while (id--) {
+                window.clearTimeout(id); // will do nothing if no timeout with id is present
+            }
+
+            // Remove element if requested
+            if (doRemoveElement) {
+                removeElement(el);
+            }
+
+            return (true); // Element found and timers removed
+        }
+
+        return (false); // Signal failure: element not found
+    }
+
+
+    //
     // Try to click a button.
     // If found indicate success (assume click event worked without testing)
     //
@@ -156,9 +195,40 @@
     }
 
 
+    //
+    // This hook waits for the "Skip Intro" button (a subset of video controls) to
+    // appear in the UI (#aria-label="Skip Intro"), then tries to click it.
+    //
+    function installRemoveTimersHook(queryselector, hookname)
+    {
+        // console.log("Start:" + hookname + " for " + queryselector);
+
+        // Wait for the element to show up, then try and remove all timers to
+        // stop the countdown and then disconnect. It's sloppy, but works.
+        // (Subtree monitoring enabled)
+        hook_info[hookname].state = registerMutationObserver(selector_page_monitor, true,
+            function(mutations)
+            {
+                // console.log("Mutations:" + hookname + " for " + queryselector);
+                if (removeAllTimersIfElementExists(queryselector, true)) {
+                    this.disconnect();
+                    hook_info[hookname].state = false;
+                    // console.log("Disconnecting:" + hookname);
+                }
+            }
+        );
+    }
+
+
+    // TODO: now that these hooks have multipled in number, consider consolidating them into one mutation observer
     // Hook page navigation and try to detect when video watching starts,
     // then monitor for the skip intro button's appearance
     registerNavigationChangeListener(installButtonClickHook, url_match, selector_skip_intro_button, 'intro');
     registerNavigationChangeListener(installButtonClickHook, url_match, selector_skip_recap_button, 'recap');
     registerNavigationChangeListener(installButtonClickHook, url_match, selector_postplay_resume_button, 'resumecredits');
+
+    registerNavigationChangeListener(installRemoveTimersHook, url_match, selector_postplay_aftercredits_countdown, 'postcreditspromo');
+
+
 })();
+
