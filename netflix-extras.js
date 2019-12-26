@@ -20,7 +20,7 @@
     var hook_info = { intro:        {state: false, url_current: "", matchtext: ""},
                       recap:        {state: false, url_current: "", matchtext: ""},
                       resumecredits:{state: false, url_current: "", matchtext: ""},
-                      postcreditspromo:{state: false, url_current: "", matchtext: "Preview in 9"}};
+                      postcreditspromo:{state: false, url_current: "", matchtext: " in 9"}}; // Countdown buttons with: "Preview in 9", "Trailer in 9"
 
     var selector_skip_intro_button = '[aria-label="Skip Intro"]';
     var selector_skip_recap_button = '[aria-label="Skip Recap"]';
@@ -128,7 +128,8 @@
         if (el != null) {
             // console.log(el.innerHTML + " === " + matchtext + "? " + (el.innerHTML === matchtext));
             // If requested, make sure text content of the element matches
-            if ((matchtext === '') || (el.innerHTML === matchtext)) {
+            var uiTextMatches = new RegExp(matchtext, "i").test(el.innerHTML);
+            if ((matchtext === '') || (uiTextMatches)) {
 
                 // Remove all active timers
                 var id = window.setTimeout(function() {}, 0);
