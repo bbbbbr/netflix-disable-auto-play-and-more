@@ -166,8 +166,8 @@
 
 
     //
-    // This hook waits for the "Skip Intro" button (a subset of video controls) to
-    // appear in the UI (#aria-label="Skip Intro"), then tries to click it.
+    // This hook waits for a button (such as a subset of video controls) to
+    // appear in the UI (ex: #aria-label="Skip Intro"), then tries to click it.
     //
     function installButtonClickHook(queryselector, hookname)
     {
@@ -196,8 +196,13 @@
 
 
     //
-    // This hook waits for the "Skip Intro" button (a subset of video controls) to
-    // appear in the UI (#aria-label="Skip Intro"), then tries to click it.
+    // This hook waits for an element to appear (such as a timer countdown)
+    // and then removes all timers.
+
+    // It's brute force, but does seem to work without noticeable collateral
+    // damage. It turned out to be easier than trying to figure out which of
+    // the hundreds of timers (one spanwed every ~second) was modifying the
+    // countdown element (which indicated imminent auto-play).
     //
     function installRemoveTimersHook(queryselector, hookname)
     {
