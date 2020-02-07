@@ -1,10 +1,10 @@
 // ==UserScript==
-// @name         Netflix Auto-Skip Intro
+// @name         Netflix UI Fixes
 // @namespace    http://www.netflix.com/
 // @version      0.1
-// @description  Netflix Auto-skip intro
+// @description  Netflix UI Fixes: Auto-skip Intro, Auto-skip Recap, Disable auto-play Next Episode, Disable auto-play Next Promoted Content
 // @author       Author
-// @include     https://www.netflix.com/*
+// @include      https://www.netflix.com/*
 // @grant        none
 // ==/UserScript==
 
